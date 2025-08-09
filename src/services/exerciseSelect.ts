@@ -1,0 +1,98 @@
+import { EXERCISES } from '../data/exercises'
+import type { Exercise, ExerciseLevel } from '../types/exercise'
+
+type SkillLevel = ExerciseLevel
+
+function levelCloseness(exerciseLevel: SkillLevel, desired?: SkillLevel): number {
+  if (!desired) return 0
+  const order = { beginner: 0, intermediate: 1, advanced: 2 } as const
+  const diff = Math.abs(order[exerciseLevel] - order[desired])
+  return diff === 0 ? 2 : diff === 1 ? 1 : 0
+}
+
+export type SelectionOptions = {
+  tags: string[]
+  focusArea?: string
+  level?: SkillLevel
+  count?: number
+}
+
+export function selectExercises(
+  tags: string[],
+  level?: SkillLevel,
+  count = 3,
+  focusArea?: string
+): Exercise[] {
+  const fundamentals = ['passing', 'footwork', 'ball-handling']
+  const effectiveTags = tags.length > 0 ? tags.map((t) => t.toLowerCase()) : fundamentals
+  const normalizedFocus = focusArea?.toLowerCase()
+
+  const scored = EXERCISES.map((exercise) => {
+    const tagOverlap = exercise.tags.reduce(
+      (sum, tag) => (effectiveTags.includes(tag) ? sum + 1 : sum),
+      0
+    )
+    const focusBonus = normalizedFocus && exercise.focusArea
+      ? (exercise.focusArea.toLowerCase().includes(normalizedFocus) ? 2 : 0)
+      : 0
+    const closeness = levelCloseness(exercise.level, level) + (exercise.allLevels ? 1 : 0)
+    // Score weighting: tags (primary), focus bonus (mid), level (secondary)
+    const score = tagOverlap * 10 + focusBonus * 5 + closeness
+    return { exercise, tagOverlap, focusBonus, closeness, score }
+  })
+
+  // Sort by total score desc, then tag overlap, then closeness, then title
+  scored.sort((a, b) =>
+    b.score - a.score ||
+    b.tagOverlap - a.tagOverlap ||
+    b.closeness - a.closeness ||
+    a.exercise.title.localeCompare(b.exercise.title)
+  )
+
+  const max = Math.min(3, count)
+  let picked = scored.filter((s) => s.tagOverlap > 0 || s.focusBonus > 0).slice(0, max).map((s) => s.exercise)
+
+  if (picked.length < Math.min(2, max) && tags.length > 0) {
+    const fallback = EXERCISES.map((exercise) => {
+      const tagOverlap = exercise.tags.reduce(
+        (sum, tag) => (fundamentals.includes(tag) ? sum + 1 : sum),
+        0
+      )
+      const closeness = levelCloseness(exercise.level, level)
+      const score = tagOverlap * 10 + closeness
+      return { exercise, tagOverlap, closeness, score }
+    })
+      .sort((a, b) => b.score - a.score || a.exercise.title.localeCompare(b.exercise.title))
+      .slice(0, max)
+      .map((s) => s.exercise)
+
+    const seen = new Set(picked.map((e) => e.id))
+    for (const ex of fallback) {
+      if (picked.length >= max) break
+      if (!seen.has(ex.id)) {
+        picked.push(ex)
+      }
+    }
+  }
+
+  if (picked.length === 0) {
+    picked = scored
+      .sort((a, b) => b.closeness - a.closeness || a.exercise.title.localeCompare(b.exercise.title))
+      .slice(0, max)
+      .map((s) => s.exercise)
+  }
+
+  // Encourage diversity by primary tag: keep first occurrence per top tag when possible
+  const seenTag = new Set<string>()
+  const diverse: Exercise[] = []
+  for (const ex of picked) {
+    const primary = ex.tags[0]
+    if (!primary || !seenTag.has(primary) || diverse.length < 2) {
+      diverse.push(ex)
+      if (primary) seenTag.add(primary)
+    }
+    if (diverse.length >= max) break
+  }
+
+  return diverse.slice(0, max)
+}

@@ -3,6 +3,8 @@ export type FeedbackExercise = {
   url: string
   thumbnail?: string
   rationale?: string
+  description?: string
+  durationMinutes?: number
 }
 
 export type FeedbackResultProps = {
@@ -10,15 +12,26 @@ export type FeedbackResultProps = {
   exercises?: FeedbackExercise[]
 }
 
+import ExerciseCard from './ExerciseCard'
+import ReactMarkdown from 'react-markdown'
+import type { Components } from 'react-markdown'
+
 function FeedbackResult({ markdown, exercises = [] }: FeedbackResultProps) {
   return (
     <section className="space-y-4 rounded-lg border border-gray-200 bg-white p-6">
       <div className="prose prose-sm max-w-none">
         {markdown ? (
-          <div>
-            <p className="m-0 text-gray-700">FeedbackResult component stub</p>
-            <pre className="mt-2 whitespace-pre-wrap text-xs text-gray-600">{markdown}</pre>
-          </div>
+          <ReactMarkdown
+            components={{
+              a: (({ href, children, ...rest }) => (
+                <a href={href} {...rest} target="_blank" rel="noreferrer">
+                  {children}
+                </a>
+              )) as Components['a'],
+            }}
+          >
+            {markdown}
+          </ReactMarkdown>
         ) : (
           <p className="text-sm text-gray-600">FeedbackResult component stub</p>
         )}
@@ -27,13 +40,15 @@ function FeedbackResult({ markdown, exercises = [] }: FeedbackResultProps) {
       {exercises.length > 0 ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {exercises.map((ex, idx) => (
-            <div key={`${ex.title}-${idx}`} className="rounded-md border border-gray-100 p-3 text-xs text-gray-700">
-              <div className="font-medium text-gray-900">{ex.title}</div>
-              {ex.rationale ? <div className="mt-1 text-gray-600">{ex.rationale}</div> : null}
-              <a href={ex.url} className="mt-2 inline-block text-indigo-600 hover:underline" target="_blank" rel="noreferrer">
-                Open
-              </a>
-            </div>
+            <ExerciseCard
+              key={`${ex.title}-${idx}`}
+              title={ex.title}
+              url={ex.url}
+              thumbnail={ex.thumbnail}
+              rationale={ex.rationale}
+              description={ex.description}
+              durationMinutes={ex.durationMinutes}
+            />
           ))}
         </div>
       ) : null}
