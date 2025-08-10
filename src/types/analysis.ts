@@ -3,7 +3,6 @@ export type AnalysisExercise = {
   title: string
   url: string
   thumbnail?: string
-  rationale?: string
   description?: string
   durationMinutes?: number
 }

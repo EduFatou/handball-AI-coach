@@ -2,14 +2,14 @@ import { useState } from 'react'
 import UploadArea from '../components/UploadArea'
 import AnalysisProgress from '../components/AnalysisProgress'
 import FeedbackResult from '../components/FeedbackResult'
-import { analyzeVideo } from '../../src/services/analyzeVideo'
+import { analyzeVideo } from '../services/analyzeVideo'
 
 type ViewState = 'idle' | 'analyzing' | 'done' | 'error'
 
 function AnalyzePanel() {
   const [state, setState] = useState<ViewState>('idle')
   const [markdown, setMarkdown] = useState<string | undefined>()
-  const [exercises, setExercises] = useState<Array<{ title: string; url: string; thumbnail?: string; rationale?: string }>>([])
+  const [exercises, setExercises] = useState<Array<{ title: string; url: string; thumbnail?: string }>>([])
   const [error, setError] = useState<string | null>(null)
   const [notHandballMessage, setNotHandballMessage] = useState<string | null>(null)
 

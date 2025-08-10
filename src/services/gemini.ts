@@ -1,7 +1,7 @@
 // Minimal Gemini client wrapper with graceful no-op if key is missing.
 // Client-only prototype: we do not upload files to external services without explicit user config.
 
-export type ActionLabel = 'passing' | 'feint' | 'footwork' | 'shooting' | 'defense' | 'goalkeeper' | 'drill'
+export type ActionLabel = 'passing' | 'feint' | 'footwork' | 'shooting' | 'defense' | 'goalkeeper' | 'drill' | 'throwing'
 
 export type GeminiAnalysis = {
   isHandball: boolean
@@ -9,6 +9,7 @@ export type GeminiAnalysis = {
   positives: string[]
   improvements: string[]
   confidence?: number
+  level?: 'beginner' | 'intermediate' | 'advanced'
   actions?: Array<{
     label: ActionLabel
     confidence: number
@@ -24,9 +25,26 @@ type AnalyzeParams = {
 
 const DEFAULT_MODEL = 'gemini-2.0-flash'
 
+const GEMINI_LOG_PREFIX = '[gemini]'
+function isDevMode(): boolean {
+  const env = (import.meta as unknown as { env?: Record<string, unknown> }).env || {}
+  return (env as { DEV?: boolean }).DEV === true || (env as { MODE?: string }).MODE !== 'production'
+}
+function logDebug(message: string, data?: unknown) {
+  if (!isDevMode()) return
+  if (data !== undefined) {
+    // eslint-disable-next-line no-console
+    console.log(`${GEMINI_LOG_PREFIX} ${message}`, data)
+  } else {
+    // eslint-disable-next-line no-console
+    console.log(`${GEMINI_LOG_PREFIX} ${message}`)
+  }
+}
+
 export async function analyzeWithGemini({ file, apiKey = getGeminiApiKey(), model = DEFAULT_MODEL }: AnalyzeParams): Promise<GeminiAnalysis | null> {
   const allowExternal = (import.meta as unknown as { env?: Record<string, unknown> }).env?.VITE_ALLOW_EXTERNAL_ANALYSIS === 'true'
   if (!apiKey || !allowExternal) {
+    logDebug('External analysis disabled', { hasApiKey: Boolean(apiKey), allowExternal })
     return null
   }
 
@@ -36,20 +54,23 @@ export async function analyzeWithGemini({ file, apiKey = getGeminiApiKey(), mode
     // Extract multiple preview frames to improve classification robustness
     const previews = await extractPreviewDataUrls(file)
     if (!previews || previews.length === 0) return null
+    logDebug('Preview frames extracted', { count: previews.length })
 
     const client = new GoogleGenerativeAI(apiKey)
     const genModel = client.getGenerativeModel({ model })
-    const prompt = `You are a handball coach analyzing short video frames. Focus on player movement mechanics (body position, footwork, timing, ball control, follow-through).
+  const prompt = `You are a handball coach analyzing short video frames. Focus on player movement mechanics (body position, footwork, timing, ball control, follow-through, throwing mechanics).
 Tasks:
 1) Decide if the scene is handball (court markings, goals, ball, or players doing handball actions).
-2) Identify the primary action(s) observed from this set (use these exact labels): [passing, feint, footwork, shooting, defense, goalkeeper, drill].
-3) Provide concise positives (what the movement does well) and improvements (failures/errors to address).
-4) If handball, also include up to 2-3 skill tags from [passing, feint, footwork, shooting, defense].
+2) Identify the primary action(s) observed from this set (use these exact labels): [passing, feint, footwork, shooting, defense, goalkeeper, drill, throwing].
+3) Estimate the skill level: one of [beginner, intermediate, advanced].
+4) Provide exactly 2 concise positives (what the movement does well) and exactly 2 concise improvements (failures/errors to address). Keep each item to a single sentence.
+5) If handball, also include up to 2-3 skill tags from [passing, feint, footwork, shooting, defense, throwing].
 Return STRICT JSON only:
 {
   "isHandball": boolean,
   "confidence": number,
-  "actions": [{ "label": "passing|feint|footwork|shooting|defense|goalkeeper|drill", "confidence": number }],
+  "level": "beginner|intermediate|advanced",
+  "actions": [{ "label": "passing|feint|footwork|shooting|defense|goalkeeper|drill|throwing", "confidence": number }],
   "tags": string[],
   "positives": string[],
   "improvements": string[]
@@ -63,10 +84,19 @@ Guidance: Keep phrases short, movement-specific (feet, hips, hands, timing, rele
       ...imageParts,
     ])
     const text = result.response.text()
+    logDebug('Raw Gemini response text (truncated)', text.slice(0, 200))
     const parsed = safeParseGeminiJson(text)
     if (!parsed) return null
+    logDebug('Parsed Gemini JSON', {
+      isHandball: parsed.isHandball,
+      tags: parsed.tags,
+      actions: parsed.actions?.map((a) => ({ label: a.label, confidence: a.confidence })),
+      positivesCount: parsed.positives?.length ?? 0,
+      improvementsCount: parsed.improvements?.length ?? 0,
+    })
     return parsed
   } catch {
+    logDebug('Gemini call failed; returning null')
     return null
   }
 }
@@ -158,7 +188,8 @@ function safeParseGeminiJson(text: string): GeminiAnalysis | null {
     if (!jsonMatch) return null
     const raw = JSON.parse(jsonMatch[0]) as Record<string, unknown>
     if (typeof raw.isHandball !== 'boolean' || !Array.isArray(raw.tags)) return null
-    const allowed = new Set<ActionLabel>(['passing', 'feint', 'footwork', 'shooting', 'defense', 'goalkeeper', 'drill'])
+    const allowed = new Set<ActionLabel>(['passing', 'feint', 'footwork', 'shooting', 'defense', 'goalkeeper', 'drill', 'throwing'])
+    const allowedLevels = new Set(['beginner', 'intermediate', 'advanced'])
     const actions: GeminiAnalysis['actions'] = Array.isArray(raw.actions)
       ? (raw.actions as Array<Record<string, unknown>>)
           .map((a) => {
@@ -169,12 +200,32 @@ function safeParseGeminiJson(text: string): GeminiAnalysis | null {
           .filter((x): x is NonNullable<typeof x> => Boolean(x))
           .slice(0, 3)
       : []
+    const ensureTwoSentences = (arr: unknown, max = 2): string[] => {
+      const items = Array.isArray(arr) ? (arr as unknown[]).map((x) => String(x)).filter(Boolean) : []
+      const out: string[] = []
+      for (const raw of items) {
+        if (out.length >= max) break
+        // Split by sentence enders to coerce one sentence per item if needed
+        const parts = String(raw)
+          .split(/(?<=[.!?])\s+/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+        if (parts.length > 0) {
+          out.push(parts[0].endsWith('.') || parts[0].endsWith('!') || parts[0].endsWith('?') ? parts[0] : `${parts[0]}.`)
+        }
+      }
+      return out.slice(0, max)
+    }
+
     return {
       isHandball: raw.isHandball as boolean,
       tags: (raw.tags as string[]).filter(Boolean).slice(0, 3),
-      positives: Array.isArray(raw.positives) ? (raw.positives as string[]).slice(0, 3) : [],
-      improvements: Array.isArray(raw.improvements) ? (raw.improvements as string[]).slice(0, 4) : [],
+      positives: ensureTwoSentences((raw as { positives?: unknown }).positives, 2),
+      improvements: ensureTwoSentences((raw as { improvements?: unknown }).improvements, 2),
       confidence: typeof (raw as { confidence?: unknown }).confidence === 'number' ? (raw as { confidence?: number }).confidence : undefined,
+      level: typeof (raw as { level?: unknown }).level === 'string' && allowedLevels.has(String((raw as { level?: unknown }).level))
+        ? (raw as { level?: 'beginner' | 'intermediate' | 'advanced' }).level
+        : undefined,
       actions,
     }
   } catch {

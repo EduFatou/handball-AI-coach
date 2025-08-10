@@ -3,6 +3,22 @@ import type { Exercise } from '../types/exercise'
 import { selectExercises } from './exerciseSelect'
 import { analyzeWithGemini, getGeminiApiKey } from './gemini'
 
+const ANALYSIS_LOG_PREFIX = '[analysis]'
+function isDevMode(): boolean {
+  const env = (import.meta as unknown as { env?: Record<string, unknown> }).env || {}
+  return (env as { DEV?: boolean }).DEV === true || (env as { MODE?: string }).MODE !== 'production'
+}
+function logDebug(message: string, data?: unknown) {
+  if (!isDevMode()) return
+  if (data !== undefined) {
+    // eslint-disable-next-line no-console
+    console.log(`${ANALYSIS_LOG_PREFIX} ${message}`, data)
+  } else {
+    // eslint-disable-next-line no-console
+    console.log(`${ANALYSIS_LOG_PREFIX} ${message}`)
+  }
+}
+
 type AnalyzeOptions = {
   level?: 'beginner' | 'intermediate' | 'advanced'
   minDelayMs?: number
@@ -13,7 +29,7 @@ const DEFAULT_DELAY: [number, number] = [2000, 4000]
 
 function inferTagsFromFileName(fileName: string): string[] {
   const name = fileName.toLowerCase()
-  const candidates = ['passing', 'feint', 'footwork', 'shooting', 'defense']
+  const candidates = ['passing', 'feint', 'footwork', 'shooting', 'defense', 'throwing', 'drill']
   const hits = candidates.filter((t) => name.includes(t))
   if (hits.length > 0) return hits
   // fallback to a random but deterministic-like pick using length hash
@@ -21,99 +37,164 @@ function inferTagsFromFileName(fileName: string): string[] {
   return [candidates[idx]]
 }
 
-function generateExerciseRationale(exercise: Exercise, primaryTag: string | undefined, level?: 'beginner' | 'intermediate' | 'advanced'): string {
-  const tag = primaryTag ?? exercise.tags[0]
-  const focusByTag: Record<string, string[]> = {
-    passing: [
-      'emphasizes firm wrist snap and clear target hand',
-      'builds timing with quick release under light pressure',
-    ],
-    footwork: [
-      'sharpens low hips, quick feet, and balanced plant steps',
-      'improves change-of-direction control and stops/starts',
-    ],
-    shooting: [
-      'syncs arm speed with jump timing and follow-through',
-      'focuses on elbow alignment and landing stability',
-    ],
-    defense: [
-      'reinforces stance, distance control, and active hands',
-      'trains lateral slides without crossing feet',
-    ],
-    feint: [
-      'develops first-step explosion and body deception',
-      'links eyes, hips, and ball to sell the move',
-    ],
-  }
 
-  const variants = focusByTag[tag] ?? ['targets fundamentals with purposeful reps']
-  const pick = variants[(exercise.id.length + (level ? level.length : 0)) % variants.length]
-  return pick
-}
+function buildMarkdown(
+  skillTags: string[],
+  _picked: Exercise[],
+  overrides?: { positives?: string[]; improvements?: string[] }
+): string {
+  const primary = skillTags[0] ?? 'fundamentals'
+  const secondary = skillTags.find((t) => t && t !== primary)
 
-function buildMarkdown(skillTags: string[], picked: Exercise[], overrides?: { positives?: string[]; improvements?: string[] }, level?: 'beginner' | 'intermediate' | 'advanced'): string {
-  const focus = skillTags[0] ?? 'fundamentals'
-
-  const textsByTag: Record<string, { good: string; improve: string }> = {
+  const textsByTag: Record<string, { good: [string, string]; improve: [string, string] }> = {
     passing: {
-      good: 'Hands are ready and your release is steady; timing looks controlled.',
-      improve: 'Snap the wrist and step through the pass to drive accuracy and pace.',
+      good: [
+        'Hands are ready and your release is steady; timing looks controlled.',
+        'You stay balanced through the pass which keeps trajectory predictable.',
+      ],
+      improve: [
+        'Snap the wrist and step through the pass to drive accuracy and pace.',
+        'Add a clear target and finish the pass with fingers pointing to the receiver.',
+      ],
+    },
+    throwing: {
+      good: [
+        'Arm path is compact with a clean wrist snap through release.',
+        'You sequence hips–torso–arm well which preserves efficiency.',
+      ],
+      improve: [
+        'Lead with the elbow and rotate the trunk to add power without forcing the shoulder.',
+        'Plant the front foot firmly and keep the head stable through release.',
+      ],
     },
     footwork: {
-      good: 'Light feet and a stable base help you stay balanced.',
-      improve: 'Lower the hips and clean up plant-foot timing to change direction faster.',
+      good: [
+        'Light feet and a stable base help you stay balanced.',
+        'You keep short steps and active hips which support quick changes of direction.',
+      ],
+      improve: [
+        'Lower the hips and clean up plant-foot timing to change direction faster.',
+        'Keep the chest tall and avoid crossing the feet under pressure.',
+      ],
     },
     shooting: {
-      good: 'Arm speed is promising and you finish with a clear follow-through.',
-      improve: 'Align the elbow and sync jump timing for more power and control.',
+      good: [
+        'Arm speed is promising and you finish with a clear follow-through.',
+        'Your plant step is consistent which supports repeatable mechanics.',
+      ],
+      improve: [
+        'Align the elbow and sync jump timing for more power and control.',
+        'Focus the eyes on a small target and hold the follow-through for a beat.',
+      ],
     },
     defense: {
-      good: 'Solid stance with active shuffle keeps you in front of the attacker.',
-      improve: 'Manage distance and keep the hands active without fouling.',
+      good: [
+        'Solid stance with active shuffle keeps you in front of the attacker.',
+        'You angle the body well to show the attacker away from the middle.',
+      ],
+      improve: [
+        'Manage distance and keep the hands active without fouling.',
+        'React with the feet first and block with the chest, not the arms.',
+      ],
     },
     feint: {
-      good: 'You sell the initial move and commit to the direction change.',
-      improve: 'Explode off the first step and use the eyes to disguise the intention.',
+      good: [
+        'You sell the initial move and commit to the direction change.',
+        'Body lean and ball protection are coordinated which keeps the move safe.',
+      ],
+      improve: [
+        'Explode off the first step and use the eyes to disguise the intention.',
+        'Set up the feint with a clear tempo change to unbalance the defender.',
+      ],
+    },
+    // Generic fallback for any other action-like secondary labels
+    fundamentals: {
+      good: [
+        'Consistent effort and clear intent through the action.',
+        'Control of balance and ball placement is improving steadily.',
+      ],
+      improve: [
+        'Tidy up alignment and timing for better efficiency and control.',
+        'Keep movements compact and repeatable before adding speed.',
+      ],
     },
   }
 
-  const base = textsByTag[focus] ?? {
-    good: 'Consistent effort and clear intent through the action.',
-    improve: 'Tidy up alignment and timing for better efficiency and control.',
+  const labelize = (tag: string) => tag.charAt(0).toUpperCase() + tag.slice(1)
+
+  const primaryBase = textsByTag[primary] ?? textsByTag.fundamentals
+  const secondaryBase = secondary ? (textsByTag[secondary] ?? textsByTag.fundamentals) : undefined
+
+  function ensurePeriod(s: string): string {
+    const t = s.trim()
+    return /[.!?]$/.test(t) ? t : `${t}.`
   }
 
-  const goodText = (overrides?.positives && overrides.positives.length > 0)
-    ? overrides.positives.slice(0, 3).join('; ')
-    : base.good
-  const improveText = (overrides?.improvements && overrides.improvements.length > 0)
-    ? overrides.improvements.slice(0, 4).join('; ')
-    : base.improve
+  function joinTwoSentences(sentences: string[], fallbackSecond?: string): string {
+    const first = sentences[0] ? ensurePeriod(sentences[0]) : ''
+    const secondRaw = sentences[1] ?? fallbackSecond ?? ''
+    const second = secondRaw ? ensurePeriod(secondRaw) : ''
+    return `${first} ${second}`.trim()
+  }
+
+  const goodPrimary = (overrides?.positives && overrides.positives.length > 0)
+    ? joinTwoSentences(overrides.positives.slice(0, 2), textsByTag[primary]?.good?.[1])
+    : joinTwoSentences(primaryBase.good)
+  const improvePrimary = (overrides?.improvements && overrides.improvements.length > 0)
+    ? joinTwoSentences(overrides.improvements.slice(0, 2), textsByTag[primary]?.improve?.[1])
+    : joinTwoSentences(primaryBase.improve)
+
+  const hasSecondary = Boolean(secondaryBase && secondary)
+  const goodParts = hasSecondary
+    ? [`${labelize(primary)}: ${goodPrimary}`]
+    : [goodPrimary]
+  const improveParts = hasSecondary
+    ? [`${labelize(primary)}: ${improvePrimary}`]
+    : [improvePrimary]
+
+  if (hasSecondary && secondaryBase && secondary) {
+    goodParts.push(`${labelize(secondary)}: ${joinTwoSentences(secondaryBase.good)}`)
+    improveParts.push(`${labelize(secondary)}: ${joinTwoSentences(secondaryBase.improve)}`)
+  }
 
   const lines: string[] = []
-  lines.push('### Technical Feedback')
-  lines.push(`- **What’s good**: ${goodText}`)
-  lines.push(`- **What to improve**: ${improveText}`)
+  const title = secondary ? `${labelize(primary)} · ${labelize(secondary)}` : labelize(primary)
+  lines.push(`## ${title}`)
   lines.push('')
-  lines.push('### Recommended Exercises')
-
-  // Include 2–3 items matching the selected exercises
-  const maxItems = Math.min(3, Math.max(2, picked.length))
-  for (let i = 0; i < maxItems; i++) {
-    const ex = picked[i]
-    const rationale = generateExerciseRationale(ex, focus, level)
-    lines.push(`${i + 1}. [${ex.title}](${ex.url}) — ${rationale}`)
+  lines.push('### Technical Feedback')
+  // Nested bullets for clarity under each section
+  lines.push(`- **What’s good**:`)
+  for (const part of goodParts) {
+    lines.push(`  - ${part}`)
   }
-
+  lines.push(`- **What to improve**:`)
+  for (const part of improveParts) {
+    lines.push(`  - ${part}`)
+  }
   return lines.join('\n')
 }
 
 export async function analyzeVideo(file: File, opts: AnalyzeOptions = {}): Promise<AnalysisResult> {
-  const { level, minDelayMs = DEFAULT_DELAY[0], maxDelayMs = DEFAULT_DELAY[1] } = opts
+  const { level: inputLevel, minDelayMs = DEFAULT_DELAY[0], maxDelayMs = DEFAULT_DELAY[1] } = opts
   const apiKey = getGeminiApiKey()
+  logDebug('analyzeVideo start', {
+    file: { name: file.name, type: file.type, size: (file as unknown as { size?: number }).size ?? 'n/a' },
+    opts: { level: inputLevel, minDelayMs, maxDelayMs },
+    hasApiKey: Boolean(apiKey),
+  })
 
   // Attempt Gemini first if key present (still respecting client-only constraints internally)
   const gemini = await analyzeWithGemini({ file, apiKey })
+  logDebug('Gemini analysis completed', gemini ? {
+    isHandball: gemini.isHandball,
+    confidence: gemini.confidence,
+    tags: gemini.tags,
+    actions: gemini.actions?.map((a) => ({ label: a.label, confidence: a.confidence })),
+    positivesCount: gemini.positives?.length ?? 0,
+    improvementsCount: gemini.improvements?.length ?? 0,
+  } : null)
   if (gemini && gemini.isHandball === false && (gemini.confidence ?? 0.7) >= 0.8) {
+    logDebug('Early return: video not handball according to Gemini', { confidence: gemini.confidence })
     return {
       notHandball: true,
       message: 'The uploaded video does not appear to be related to handball. Please upload a handball training or match clip.',
@@ -128,6 +209,7 @@ export async function analyzeVideo(file: File, opts: AnalyzeOptions = {}): Promi
       case 'footwork':
       case 'shooting':
       case 'defense':
+      case 'throwing':
         return label
       case 'goalkeeper':
         return 'defense'
@@ -148,39 +230,57 @@ export async function analyzeVideo(file: File, opts: AnalyzeOptions = {}): Promi
   // Infer focus area string from primary tag for better matching
   const focusMap: Record<string, string> = {
     passing: 'Passing',
+    throwing: 'Throwing',
     footwork: 'Footwork',
     shooting: 'Shooting',
     defense: 'Defense',
     feint: 'Feints',
   }
   const focusArea = focusMap[tags[0] ?? '']
+  // Infer level: prefer Gemini, else filename hints, else input
+  const inferredLevelFromName = (() => {
+    const n = file.name.toLowerCase()
+    if (/(^|[^a-z])(beg|beginner|u9|u10|u11|u12)([^a-z]|$)/.test(n)) return 'beginner' as const
+    if (/(^|[^a-z])(int|intermediate|u13|u14|u15)([^a-z]|$)/.test(n)) return 'intermediate' as const
+    if (/(^|[^a-z])(adv|advanced|u16|u17|u18|u19)([^a-z]|$)/.test(n)) return 'advanced' as const
+    return undefined
+  })()
+  const level = gemini?.level ?? inferredLevelFromName ?? inputLevel
+  logDebug('Derived tags and focus', { tags, focusArea, level, from: actionTags.length > 0 ? 'Gemini actions' : (gemini?.tags?.length ? 'Gemini tags' : 'filename') })
   const exercises = selectExercises(tags, level, 3, focusArea)
+  logDebug('Exercises selected', { selected: exercises.map((e) => ({ id: e.id, title: e.title })) })
   const markdown = buildMarkdown(
     tags,
     exercises,
     gemini
       ? { positives: gemini.positives, improvements: gemini.improvements }
-      : undefined,
-    level
+      : undefined
   )
+  logDebug('Markdown built', { length: markdown.length })
 
   const withRationale = exercises.map((ex) => ({
     title: ex.title,
     url: ex.url,
     thumbnail: ex.thumbnail,
-    rationale: generateExerciseRationale(ex, tags[0], level),
     description: ex.description,
     durationMinutes: ex.durationMinutes,
   }))
 
   const delay = Math.floor(minDelayMs + Math.random() * Math.max(0, maxDelayMs - minDelayMs))
+  logDebug('Simulated analysis delay (ms)', delay)
   await new Promise((res) => setTimeout(res, delay))
 
-  return {
+  const result: AnalysisResult = {
     markdown,
     exercises: withRationale,
     tags,
   }
+  logDebug('analyzeVideo result', {
+    tags: result.tags,
+    exercises: result.exercises.map((e) => ({ title: e.title, url: e.url })),
+    markdownPreview: result.markdown.slice(0, 120) + (result.markdown.length > 120 ? '…' : ''),
+  })
+  return result
 }
 
 
