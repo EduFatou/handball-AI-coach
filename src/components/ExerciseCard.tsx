@@ -39,12 +39,19 @@ function ExerciseCard({ title, url, thumbnail, description, durationMinutes }: E
     return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : undefined
   })()
   return (
-    <article className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-      {derivedThumbnail ? (
-        <img src={derivedThumbnail} alt={title} className="h-32 w-full object-cover" />
-      ) : (
-        <div className="h-32 w-full bg-gray-100" />
-      )}
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      className="group block h-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition duration-150 ease-out hover:-translate-y-0.5 hover:scale-[1.03] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#EB2F4B] will-change-transform transform-gpu"
+    >
+      <div className="aspect-[16/9] w-full overflow-hidden">
+        {derivedThumbnail ? (
+          <img src={derivedThumbnail} alt={title} className="h-full w-full origin-center object-cover" />
+        ) : (
+          <div className="h-full w-full bg-gray-100" />
+        )}
+      </div>
       <div className="p-4">
         <h3 className="text-sm font-medium text-gray-900">{title}</h3>
         {description ? (
@@ -53,16 +60,11 @@ function ExerciseCard({ title, url, thumbnail, description, durationMinutes }: E
         {typeof durationMinutes === 'number' ? (
           <p className="mt-1 text-[11px] text-gray-500">Duration: {durationMinutes} min</p>
         ) : null}
-        <a
-          href={url}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-3 inline-flex text-xs font-medium text-indigo-600 hover:underline"
-        >
+        <span className="mt-3 inline-flex rounded-sm bg-[#EB2F4B] px-3 py-2 text-xs font-semibold text-white shadow-sm transition duration-150 ease-out group-hover:-translate-y-0.5 group-hover:shadow-md">
           View exercise
-        </a>
+        </span>
       </div>
-    </article>
+    </a>
   )
 }
 

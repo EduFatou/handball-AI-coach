@@ -35,16 +35,34 @@ function AnalyzePanel() {
 
   return (
     <div className="space-y-4">
+      <section className="text-center space-y-3">
+        <h2 className="text-xl md:text-3xl font-semibold text-[#8f2668]">Handball Video Analysis</h2>
+        <p className="mx-auto max-w-3xl text-base md:text-lg text-gray-800">
+          Upload a handball training clip and receive clear, coach-style feedback.
+        </p>
+        <span className="font-semibold text-[#8f2668] text-lg">How it works:</span>
+        <p className="my-2 mx-auto max-w-3xl text-base md:text-lg text-gray-800">
+          When running locally, the analysis infers the focus area from the file name.
+          Because a Gemini API key is configured here, <strong>you’ll receive real AI model feedback</strong> after the video is analyzed.
+          </p>
+          <p className="my-2 mx-auto max-w-3xl text-base md:text-lg text-gray-800">
+          <strong>It actually works, and feels amazing.</strong>
+          </p>
+      </section>
       <UploadArea onFileSelected={onFileSelected} accept="video/mp4,video/quicktime" />
 
-      {state === 'analyzing' && <AnalysisProgress message="Analyzing video... This will take a moment." />}
+      {state === 'analyzing' && (
+        <div className="flex justify-center">
+          <AnalysisProgress message="Analyzing video... This will take a moment." />
+        </div>
+      )}
 
       {state === 'done' && (
         <FeedbackResult markdown={markdown} exercises={exercises} />
       )}
 
       {state === 'error' && (
-        <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">
+        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">
           {notHandballMessage ?? error}
         </div>
       )}

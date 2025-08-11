@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, DragEvent } from 'react'
 
 export type UploadAreaProps = {
@@ -8,7 +8,7 @@ export type UploadAreaProps = {
 }
 
 const DEFAULT_ACCEPT = 'video/mp4,video/quicktime'
-const MAX_MB = 100
+const MAX_MB = 25
 
 function isSupportedVideo(file: File): boolean {
   const type = file.type.toLowerCase()
@@ -93,7 +93,7 @@ function UploadArea({ onFileSelected, accept = DEFAULT_ACCEPT, disabled = false 
   const [thumbnail, setThumbnail] = useState<string | null>(null)
 
   const instructions = useMemo(
-    () => 'Click to upload or drag & drop a video (MP4 or MOV) — Max 100 MB',
+    () => `Click to upload or drag & drop a video (MP4 or MOV) — Max ${MAX_MB} MB`,
     []
   )
 
@@ -164,13 +164,6 @@ function UploadArea({ onFileSelected, accept = DEFAULT_ACCEPT, disabled = false 
     inputRef.current?.click()
   }, [disabled])
 
-  useEffect(() => {
-    return () => {
-      // Clean any potential object URLs created inside thumbnail gen
-      // generateThumbnailFromVideo revokes its own URL, so nothing here
-    }
-  }, [])
-
   return (
     <section
       className={[
@@ -189,16 +182,19 @@ function UploadArea({ onFileSelected, accept = DEFAULT_ACCEPT, disabled = false 
             type="button"
             onClick={onClick}
             className={[
-              'w-full rounded-md border px-4 py-10',
-              disabled ? 'cursor-not-allowed border-gray-200 bg-white' : 'cursor-pointer bg-white hover:border-blue-400',
+              'w-full rounded-lg border-2 px-4 py-10 text-gray-700 shadow-sm transition duration-150 ease-out hover:-translate-y-0.5 hover:scale-105 hover:shadow-md hover:border-[#8f2668] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#8f2668]',
+              disabled ? 'cursor-not-allowed border-gray-200 bg-white disabled:hover:translate-y-0 disabled:hover:scale-100 disabled:hover:shadow-sm' : 'cursor-pointer bg-white',
             ].join(' ')}
             aria-label="Upload video"
             disabled={disabled}
           >
             <div className="flex flex-col items-center gap-2">
-              <svg aria-hidden="true" className="h-8 w-8 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 16V4m0 0l-4 4m4-4l4 4" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M20 16.58A5 5 0 0018 7h-1.26A8 8 0 103 15.25" strokeLinecap="round" strokeLinejoin="round" />
+              <svg aria-hidden="true" className="h-8 w-8 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M7.5 7.5 12 3m0 0 4.5 4.5M12 3v12"
+                />
               </svg>
               <span className="text-sm font-medium">Click to upload or drag & drop</span>
               <span className="text-xs text-gray-500">{instructions}</span>
@@ -222,27 +218,27 @@ function UploadArea({ onFileSelected, accept = DEFAULT_ACCEPT, disabled = false 
         )}
 
         {selectedFile && (
-          <div className="mt-2 w-full rounded-md border bg-white p-3 text-left">
-            <div className="flex items-center gap-3">
+          <div className="mt-2 w-full rounded-lg border bg-white p-3 text-left">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               {thumbnail ? (
                 <img
                   src={thumbnail}
                   alt="Video thumbnail"
-                  className="h-20 w-32 flex-shrink-0 rounded object-cover"
+                  className="h-20 w-32 flex-shrink-0 rounded object-cover self-center sm:self-auto"
                 />
               ) : (
-                <div className="flex h-20 w-32 flex-shrink-0 items-center justify-center rounded bg-gray-100 text-xs text-gray-500">
+                <div className="flex h-20 w-32 flex-shrink-0 items-center justify-center rounded bg-gray-100 text-xs text-gray-500 self-center sm:self-auto">
                   No thumbnail
                 </div>
               )}
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 max-w-full flex-1 self-center overflow-hidden text-center sm:self-auto sm:text-left">
                 <p className="truncate text-sm font-medium text-gray-900" title={selectedFile.name}>{selectedFile.name}</p>
-                <p className="text-xs text-gray-500">{formatBytes(selectedFile.size)}</p>
+                <p className="truncate text-xs text-gray-500">{formatBytes(selectedFile.size)}</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex w-full flex-col items-center gap-2 sm:ml-auto sm:w-auto sm:flex-row sm:flex-nowrap sm:justify-end">
                 <button
                   type="button"
-                  className="rounded border px-2 py-1 text-xs hover:bg-gray-50"
+                  className="w-22 rounded-sm bg-[#EB2F4B] px-3 py-2 text-sm font-semibold text-white shadow-sm transition duration-150 ease-out hover:-translate-y-0.5 hover:scale-105 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#EB2F4B] active:translate-y-0 active:scale-100 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:shadow-sm disabled:hover:translate-y-0 disabled:hover:scale-100"
                   onClick={() => inputRef.current?.click()}
                   disabled={disabled}
                 >
@@ -250,7 +246,7 @@ function UploadArea({ onFileSelected, accept = DEFAULT_ACCEPT, disabled = false 
                 </button>
                 <button
                   type="button"
-                  className="rounded border px-2 py-1 text-xs hover:bg-gray-50"
+                  className="w-22 rounded-sm bg-[#EB2F4B] px-3 py-2 text-sm font-semibold text-white shadow-sm transition duration-150 ease-out hover:-translate-y-0.5 hover:scale-105 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#EB2F4B] active:translate-y-0 active:scale-100 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:shadow-sm disabled:hover:translate-y-0 disabled:hover:scale-100"
                   onClick={() => {
                     setSelectedFile(null)
                     setThumbnail(null)
