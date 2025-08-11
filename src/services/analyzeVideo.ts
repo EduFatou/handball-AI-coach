@@ -1,23 +1,7 @@
 import type { AnalysisResult } from '../types/analysis'
 import type { Exercise } from '../types/exercise'
 import { selectExercises } from './exerciseSelect'
-import { analyzeWithGemini, getGeminiApiKey } from './gemini'
-
-const ANALYSIS_LOG_PREFIX = '[analysis]'
-function isDevMode(): boolean {
-  const env = (import.meta as unknown as { env?: Record<string, unknown> }).env || {}
-  return (env as { DEV?: boolean }).DEV === true || (env as { MODE?: string }).MODE !== 'production'
-}
-function logDebug(message: string, data?: unknown) {
-  if (!isDevMode()) return
-  if (data !== undefined) {
-    // eslint-disable-next-line no-console
-    console.log(`${ANALYSIS_LOG_PREFIX} ${message}`, data)
-  } else {
-    // eslint-disable-next-line no-console
-    console.log(`${ANALYSIS_LOG_PREFIX} ${message}`)
-  }
-}
+import { analyzeWithGemini } from './gemini'
 
 type AnalyzeOptions = {
   level?: 'beginner' | 'intermediate' | 'advanced'
@@ -157,44 +141,18 @@ function buildMarkdown(
     improveParts.push(`${labelize(secondary)}: ${joinTwoSentences(secondaryBase.improve)}`)
   }
 
-  const lines: string[] = []
   const title = secondary ? `${labelize(primary)} · ${labelize(secondary)}` : labelize(primary)
-  lines.push(`## ${title}`)
-  lines.push('')
-  lines.push('### Technical Feedback')
-  // Nested bullets for clarity under each section
-  lines.push(`- **What’s good**:`)
-  for (const part of goodParts) {
-    lines.push(`  - ${part}`)
-  }
-  lines.push(`- **What to improve**:`)
-  for (const part of improveParts) {
-    lines.push(`  - ${part}`)
-  }
-  return lines.join('\n')
+  const goodBullets = goodParts.map((p) => `  - ${p}`).join('\n')
+  const improveBullets = improveParts.map((p) => `  - ${p}`).join('\n')
+  return `## ${title}\n\n### Technical Feedback\n- **What’s good**:\n${goodBullets}\n- **What to improve**:\n${improveBullets}`
 }
 
 export async function analyzeVideo(file: File, opts: AnalyzeOptions = {}): Promise<AnalysisResult> {
   const { level: inputLevel, minDelayMs = DEFAULT_DELAY[0], maxDelayMs = DEFAULT_DELAY[1] } = opts
-  const apiKey = getGeminiApiKey()
-  logDebug('analyzeVideo start', {
-    file: { name: file.name, type: file.type, size: (file as unknown as { size?: number }).size ?? 'n/a' },
-    opts: { level: inputLevel, minDelayMs, maxDelayMs },
-    hasApiKey: Boolean(apiKey),
-  })
 
   // Attempt Gemini first if key present (still respecting client-only constraints internally)
-  const gemini = await analyzeWithGemini({ file, apiKey })
-  logDebug('Gemini analysis completed', gemini ? {
-    isHandball: gemini.isHandball,
-    confidence: gemini.confidence,
-    tags: gemini.tags,
-    actions: gemini.actions?.map((a) => ({ label: a.label, confidence: a.confidence })),
-    positivesCount: gemini.positives?.length ?? 0,
-    improvementsCount: gemini.improvements?.length ?? 0,
-  } : null)
+  const gemini = await analyzeWithGemini({ file })
   if (gemini && gemini.isHandball === false && (gemini.confidence ?? 0.7) >= 0.8) {
-    logDebug('Early return: video not handball according to Gemini', { confidence: gemini.confidence })
     return {
       notHandball: true,
       message: 'The uploaded video does not appear to be related to handball. Please upload a handball training or match clip.',
@@ -246,9 +204,7 @@ export async function analyzeVideo(file: File, opts: AnalyzeOptions = {}): Promi
     return undefined
   })()
   const level = gemini?.level ?? inferredLevelFromName ?? inputLevel
-  logDebug('Derived tags and focus', { tags, focusArea, level, from: actionTags.length > 0 ? 'Gemini actions' : (gemini?.tags?.length ? 'Gemini tags' : 'filename') })
   const exercises = selectExercises(tags, level, 3, focusArea)
-  logDebug('Exercises selected', { selected: exercises.map((e) => ({ id: e.id, title: e.title })) })
   const markdown = buildMarkdown(
     tags,
     exercises,
@@ -256,7 +212,6 @@ export async function analyzeVideo(file: File, opts: AnalyzeOptions = {}): Promi
       ? { positives: gemini.positives, improvements: gemini.improvements }
       : undefined
   )
-  logDebug('Markdown built', { length: markdown.length })
 
   const withRationale = exercises.map((ex) => ({
     title: ex.title,
@@ -267,7 +222,6 @@ export async function analyzeVideo(file: File, opts: AnalyzeOptions = {}): Promi
   }))
 
   const delay = Math.floor(minDelayMs + Math.random() * Math.max(0, maxDelayMs - minDelayMs))
-  logDebug('Simulated analysis delay (ms)', delay)
   await new Promise((res) => setTimeout(res, delay))
 
   const result: AnalysisResult = {
@@ -275,11 +229,6 @@ export async function analyzeVideo(file: File, opts: AnalyzeOptions = {}): Promi
     exercises: withRationale,
     tags,
   }
-  logDebug('analyzeVideo result', {
-    tags: result.tags,
-    exercises: result.exercises.map((e) => ({ title: e.title, url: e.url })),
-    markdownPreview: result.markdown.slice(0, 120) + (result.markdown.length > 120 ? '…' : ''),
-  })
   return result
 }
 

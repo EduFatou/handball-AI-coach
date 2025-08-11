@@ -22,22 +22,22 @@ function FeedbackResult({ markdown, exercises = [] }: FeedbackResultProps) {
         {markdown ? (
           <ReactMarkdown
             components={{
-              h2: (({ node, ...props }) => (
+              h2: ((props) => (
                 <h2 className="mb-2 text-lg font-bold text-gray-900" {...props} />
               )) as Components['h2'],
-              h3: (({ node, ...props }) => (
+              h3: ((props) => (
                 <h3 className="mb-2 mt-4 flex items-center gap-2 text-base font-semibold text-gray-900" {...props} />
               )) as Components['h3'],
-              p: (({ node, ...props }) => (
+              p: ((props) => (
                 <p className="mb-3" {...props} />
               )) as Components['p'],
-              ul: (({ node, ...props }) => (
+              ul: ((props) => (
                 <ul className="mb-3 space-y-1 pl-0" {...props} />
               )) as Components['ul'],
-              ol: (({ node, ...props }) => (
+              ol: ((props) => (
                 <ol className="mb-3 list-decimal space-y-1 pl-5" {...props} />
               )) as Components['ol'],
-              li: (({ node, children, ...rest }) => {
+              li: (({ children, ...rest }) => {
                 const toText = (c: unknown): string => {
                   if (c == null) return ''
                   if (typeof c === 'string' || typeof c === 'number') return String(c)
@@ -61,7 +61,7 @@ function FeedbackResult({ markdown, exercises = [] }: FeedbackResultProps) {
                   </li>
                 )
               }) as Components['li'],
-              strong: (({ node, children, ...props }) => {
+              strong: (({ children, ...props }) => {
                 const toText = (c: unknown): string => {
                   if (c == null) return ''
                   if (typeof c === 'string' || typeof c === 'number') return String(c)
