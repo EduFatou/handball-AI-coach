@@ -17,25 +17,40 @@ import type { Components } from 'react-markdown'
 
 function FeedbackResult({ markdown, exercises = [] }: FeedbackResultProps) {
   return (
-    <section className="space-y-4 rounded-lg border border-gray-200 bg-white p-6">
-      <div className="max-w-none text-sm leading-6 text-gray-800">
+    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50/30 shadow-xl">
+      <div className="bg-gradient-to-r from-[#8f2668]/5 via-[#e5204c]/5 to-[#8f2668]/5 px-8 py-6 border-b border-gray-100">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#8f2668] to-[#e5204c]">
+            <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Analysis Complete</h2>
+            <p className="text-sm text-gray-600">Here's your personalized feedback</p>
+          </div>
+        </div>
+      </div>
+      
+      <div className="p-8">
+        <div className="max-w-none text-sm leading-7 text-gray-800">
         {markdown ? (
           <ReactMarkdown
             components={{
               h2: ((props) => (
-                <h2 className="mb-2 text-lg font-bold text-gray-900" {...props} />
+                <h2 className="mb-4 text-xl font-bold text-gray-900 border-b border-gray-200 pb-2" {...props} />
               )) as Components['h2'],
               h3: ((props) => (
-                <h3 className="mb-2 mt-4 flex items-center gap-2 text-base font-semibold text-gray-900" {...props} />
+                <h3 className="mb-3 mt-6 flex items-center gap-2 text-lg font-semibold text-gray-900" {...props} />
               )) as Components['h3'],
               p: ((props) => (
-                <p className="mb-3" {...props} />
+                <p className="mb-4 leading-relaxed" {...props} />
               )) as Components['p'],
               ul: ((props) => (
-                <ul className="mb-3 space-y-1 pl-0" {...props} />
+                <ul className="mb-4 space-y-2 pl-0" {...props} />
               )) as Components['ul'],
               ol: ((props) => (
-                <ol className="mb-3 list-decimal space-y-1 pl-5" {...props} />
+                <ol className="mb-4 list-decimal space-y-2 pl-6" {...props} />
               )) as Components['ol'],
               li: (({ children, ...rest }) => {
                 const toText = (c: unknown): string => {
@@ -49,15 +64,15 @@ function FeedbackResult({ markdown, exercises = [] }: FeedbackResultProps) {
                 const isSectionLabel = labelText.startsWith("what’s good") || labelText.startsWith("what's good") || labelText.startsWith('what to improve')
                 if (isSectionLabel) {
                   return (
-                    <li className="mb-2" {...rest}>
+                    <li className="mb-3" {...rest}>
                       <div className="min-w-0">{children}</div>
                     </li>
                   )
                 }
                 return (
-                  <li className="mb-1 flex items-start gap-2" {...rest}>
-                    <span className="mt-1 inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full border border-[#8f2668]" />
-                    <div className="min-w-0">{children}</div>
+                  <li className="mb-2 flex items-start gap-3" {...rest}>
+                    <span className="mt-2 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-gradient-to-br from-[#8f2668] to-[#e5204c]" />
+                    <div className="min-w-0 leading-relaxed">{children}</div>
                   </li>
                 )
               }) as Components['li'],
@@ -76,8 +91,8 @@ function FeedbackResult({ markdown, exercises = [] }: FeedbackResultProps) {
                   return <strong className="font-semibold text-gray-900" {...props}>{children}</strong>
                 }
                 const icon = (
-                  <span aria-hidden className="mr-2 inline-flex items-center justify-center text-[#8f2668]">
-                    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <span aria-hidden className="mr-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#8f2668]/10 to-[#e5204c]/10 text-[#8f2668]">
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       {isGood ? (
                         // Star outline
                         <path d="M12 17.27L6.18 20.5l1.64-6.99L2 8.9l7.09-.6L12 2l2.91 6.3L22 8.9l-5.82 4.61L17.82 20.5 12 17.27z" />
@@ -92,7 +107,7 @@ function FeedbackResult({ markdown, exercises = [] }: FeedbackResultProps) {
                   </span>
                 )
                 return (
-                  <span className="inline-flex items-center font-semibold text-[#8f2668]" {...props}>
+                  <span className="inline-flex items-center font-bold text-[#8f2668] text-lg" {...props}>
                     {icon}
                     <span>{children}</span>
                   </span>
@@ -104,7 +119,7 @@ function FeedbackResult({ markdown, exercises = [] }: FeedbackResultProps) {
                   {...rest}
                   target="_blank"
                   rel="noreferrer"
-                  className="underline decoration-blue-500 decoration-2 underline-offset-2 hover:text-blue-700 hover:decoration-blue-700"
+                  className="font-medium text-[#8f2668] hover:text-[#e5204c] underline decoration-2 underline-offset-2 transition-colors duration-200"
                 >
                   {children}
                 </a>
@@ -116,22 +131,27 @@ function FeedbackResult({ markdown, exercises = [] }: FeedbackResultProps) {
         ) : (
           <p className="text-sm text-gray-600">FeedbackResult component stub</p>
         )}
+        </div>
       </div>
 
       {exercises.length > 0 ? (
-        <>
-          <div className="mt-8 flex items-center gap-3">
-            <div className="h-px flex-1 bg-gray-200" />
-            <div className="text-center text-[13px] font-semibold uppercase tracking-wide text-gray-600">
-              Recommended Exercises
+        <div className="border-t border-gray-100 bg-gradient-to-br from-gray-50/50 to-white">
+          <div className="px-8 py-6">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#8f2668] to-[#e5204c]">
+                <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Recommended Training</h3>
+                <p className="text-sm text-gray-600">Continue improving with these targeted exercises</p>
+              </div>
             </div>
-            <div className="h-px flex-1 bg-gray-200" />
-          </div>
 
-          <div className="pt-2">
-            <div className="mx-auto flex w-full flex-col items-center gap-6 px-4 sm:px-6 py-4 sm:py-6 lg:py-8 overflow-x-hidden lg:flex-row lg:flex-nowrap lg:justify-center lg:px-10 xl:px-16">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {exercises.map((ex, idx) => (
-                <div key={`${ex.title}-${idx}`} className="w-[92%] max-w-[400px] sm:max-w-[440px] lg:w-[320px]">
+                <div key={`${ex.title}-${idx}`} className="w-full">
                   <ExerciseCard
                     title={ex.title}
                     url={ex.url}
@@ -143,7 +163,7 @@ function FeedbackResult({ markdown, exercises = [] }: FeedbackResultProps) {
               ))}
             </div>
           </div>
-        </>
+        </div>
       ) : null}
     </section>
   )

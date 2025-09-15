@@ -34,22 +34,33 @@ function AnalyzePanel() {
   }
 
   return (
-    <div className="space-y-4">
-      <section className="text-center space-y-3">
-        <h2 className="text-xl md:text-3xl font-semibold text-[#8f2668]">Handball Video Analysis</h2>
-        <p className="mx-auto max-w-3xl text-base md:text-lg text-gray-800">
-          Upload a handball training clip and receive clear, coach-style feedback.
-        </p>
-        <span className="font-semibold text-[#8f2668] text-lg">How it works:</span>
-        <p className="my-2 mx-auto max-w-3xl text-base md:text-lg text-gray-800">
-          When running locally, the analysis infers the focus area from the file name.
-          Because a Gemini API key is configured here, <strong>you’ll receive real AI model feedback</strong> after the video is analyzed.
+    <div className="space-y-8 md:space-y-10">
+      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/10 backdrop-blur-xl px-6 md:px-8 py-8 md:py-9 text-center shadow-[0_8px_34px_-10px_rgba(0,0,0,0.45),0_0_0_1px_rgba(255,255,255,0.05)]">
+        <div className="absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_22%_18%,rgba(255,255,255,0.75)_0%,transparent_55%)]" />
+        <div className="relative space-y-4 md:space-y-5">
+          <p className="mx-auto max-w-2xl text-sm md:text-base text-white/80 leading-relaxed">
+            Instant AI-powered handball technique insight. Upload a short clip—get actionable coaching points and targeted drills in seconds.
           </p>
-          <p className="my-2 mx-auto max-w-3xl text-base md:text-lg text-gray-800">
-          <strong>It actually works, and feels amazing.</strong>
-          </p>
+          <div className="flex items-center justify-center gap-2 text-[10px] md:text-xs uppercase tracking-[0.18em] text-white/50">
+            <span className="h-1 w-1 rounded-full bg-white/40" />
+            <span>Workflow</span>
+            <span className="h-1 w-1 rounded-full bg-white/40" />
+          </div>
+          <div className="mx-auto max-w-3xl space-y-3 text-white/70 text-xs md:text-[15px] leading-relaxed">
+            <p>Filename hints the focus (e.g. defensive_footwork.mp4). Gemini API returns authentic, structured feedback—no canned text.</p>
+            <p className="font-medium text-white/80">
+              <strong className="text-white">Real analysis</strong>, not a template. Built for iteration between reps.
+            </p>
+          </div>
+        </div>
       </section>
-      <UploadArea onFileSelected={onFileSelected} accept="video/mp4,video/quicktime" />
+
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl px-6 md:px-8 py-7 md:py-8 shadow-[0_6px_30px_-8px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.04)]">
+        <div className="absolute inset-0 opacity-[0.08] bg-[radial-gradient(circle_at_80%_30%,rgba(255,255,255,0.8)_0%,transparent_60%)]" />
+        <div className="relative">
+          <UploadArea onFileSelected={onFileSelected} accept="video/mp4,video/quicktime" />
+        </div>
+      </div>
 
       {state === 'analyzing' && (
         <div className="flex justify-center">
@@ -62,8 +73,19 @@ function AnalyzePanel() {
       )}
 
       {state === 'error' && (
-        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">
-          {notHandballMessage ?? error}
+        <div className="relative overflow-hidden rounded-3xl border border-red-400/30 bg-gradient-to-br from-red-500/25 via-red-500/15 to-red-400/10 backdrop-blur-xl p-6 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.05)]">
+          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_35%_30%,rgba(255,255,255,0.6)_0%,transparent_65%)]" />
+          <div className="relative flex items-start gap-5">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-400/30 ring-1 ring-inset ring-white/15">
+              <svg className="h-5 w-5 text-red-200" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-semibold text-red-100 tracking-wide uppercase text-xs">Analysis Error</h3>
+              <p className="text-sm leading-relaxed text-red-50/80">{notHandballMessage ?? error}</p>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -1,4 +1,4 @@
-# Athlera × Learn Handball — Video Analysis UI
+# Handball — Video Analysis UI
 
 A small, client-first React app where a coach uploads a handball video and receives coach-style feedback plus 2–3 recommended exercises. Analysis is simulated locally by default; optionally, you can enable real AI feedback via a secure Netlify Function that uses the Gemini API key stored in server-side environment variables.
 
