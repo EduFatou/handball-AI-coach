@@ -85,7 +85,7 @@ Tasks:
 1) Decide if the scene is handball (court markings, goals, ball, or players doing handball actions).
 2) Identify the primary action(s) observed from this set (use these exact labels): [passing, feint, footwork, shooting, defense, goalkeeper, drill, throwing].
 3) Estimate the skill level: one of [beginner, intermediate, advanced].
-4) Provide exactly 2 concise positives and exactly 2 concise improvements. One sentence each.
+4) Provide exactly 3 concise positives and exactly 3 concise improvements. One sentence each.
 5) If handball, also include up to 2-3 skill tags from [passing, feint, footwork, shooting, defense, throwing].
 Return STRICT JSON only:
 {

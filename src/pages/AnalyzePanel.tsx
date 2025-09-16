@@ -34,22 +34,15 @@ function AnalyzePanel() {
   }
 
   return (
-    <div className="space-y-8 md:space-y-10">
-      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/10 backdrop-blur-xl px-6 md:px-8 py-8 md:py-9 text-center shadow-[0_8px_34px_-10px_rgba(0,0,0,0.45),0_0_0_1px_rgba(255,255,255,0.05)]">
-        <div className="absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_22%_18%,rgba(255,255,255,0.75)_0%,transparent_55%)]" />
-        <div className="relative space-y-4 md:space-y-5">
-          <p className="mx-auto max-w-2xl text-sm md:text-base text-white/80 leading-relaxed">
-            Instant AI-powered handball technique insight. Upload a short clip—get actionable coaching points and targeted drills in seconds.
-          </p>
-          <div className="flex items-center justify-center gap-2 text-[10px] md:text-xs uppercase tracking-[0.18em] text-white/50">
-            <span className="h-1 w-1 rounded-full bg-white/40" />
-            <span>Workflow</span>
-            <span className="h-1 w-1 rounded-full bg-white/40" />
-          </div>
-          <div className="mx-auto max-w-3xl space-y-3 text-white/70 text-xs md:text-[15px] leading-relaxed">
-            <p>Filename hints the focus (e.g. defensive_footwork.mp4). Gemini API returns authentic, structured feedback—no canned text.</p>
+    <div className="space-y-10 md:space-y-14">
+      <section className="relative overflow-hidden">
+        <div className="relative space-y-6 md:space-y-8">
+          <h1 className="text-center mx-auto max-w-4xl text-3xl md:text-5xl font-bold text-white/90 leading-tight">
+            AI-powered Handball Technique Insight
+          </h1>
+          <div className="text-center mx-auto max-w-3xl space-y-3 text-white/80 text-base md:text-xl leading-relaxed">
             <p className="font-medium text-white/80">
-              <strong className="text-white">Real analysis</strong>, not a template. Built for iteration between reps.
+            Unlock your potential receiving coach-grade insights to elevate your game.
             </p>
           </div>
         </div>
