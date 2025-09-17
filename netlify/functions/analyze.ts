@@ -32,7 +32,7 @@ function safeParseGeminiJson(text: string): GeminiAnalysis | null {
           .filter((x): x is NonNullable<typeof x> => Boolean(x))
           .slice(0, 3)
       : []
-    const ensureTwoSentences = (arr: unknown, max = 2): string[] => {
+    const ensureThreeSentences = (arr: unknown, max = 3): string[] => {
       const items = Array.isArray(arr) ? (arr as unknown[]).map((x) => String(x)).filter(Boolean) : []
       const out: string[] = []
       for (const r of items) {
@@ -50,8 +50,8 @@ function safeParseGeminiJson(text: string): GeminiAnalysis | null {
     return {
       isHandball: raw.isHandball as boolean,
       tags: (raw.tags as string[]).filter(Boolean).slice(0, 3),
-      positives: ensureTwoSentences((raw as { positives?: unknown }).positives, 2),
-      improvements: ensureTwoSentences((raw as { improvements?: unknown }).improvements, 2),
+      positives: ensureThreeSentences((raw as { positives?: unknown }).positives, 3),
+      improvements: ensureThreeSentences((raw as { improvements?: unknown }).improvements, 3),
       confidence: typeof (raw as { confidence?: unknown }).confidence === 'number' ? (raw as { confidence?: number }).confidence : undefined,
       level: typeof (raw as { level?: unknown }).level === 'string' && allowedLevels.has(String((raw as { level?: unknown }).level))
         ? (raw as { level?: 'beginner' | 'intermediate' | 'advanced' }).level
