@@ -95,13 +95,6 @@ Notes:
 ```
 3) Deploy. The client calls the function; the key stays server-side per Netlify docs.
 
-## Acceptance Criteria Covered
-- Upload works with validation and optional drag & drop.
-- Analyzing state (2–5s deterministic simulated delay with local mode).
-- Feedback always includes positives, improvements, and 2–3 exercises.
-- Exercise selection relevance and diversity with clear links.
-- Clean, responsive, accessible UI; no console errors; build passes.
-
 ## Known Limitations
 - No persistence or auth.
 - Single-page flow; no routing.
